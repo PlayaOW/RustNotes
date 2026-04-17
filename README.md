@@ -75,6 +75,71 @@ const MAX_POINTS: u32 = 100_000;
 <li> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Setting the price of the menu before the restaurant even opens.</li>
 <li> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Cashing out a customer which depends on their purchase which may &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;increase or decrease.</li>
 </ol> 
--  
 
+- Constant values must be set when writing the program. Some return values of functions, or user input cannot be used to initialize a constant.
+- Rust convention for writing the name of constant is to be all uppercase with (_) underscore between spaces.
+- Constant evaluation is the process of computing the result of expression during compilation. ONly a subset of all expressions can be evaluated at compile-time.
+- Const eval (Constant Evaluation) is the process where the compiler executes specific parts of your code and computes their result at compile time, rather than waiting till the program runs.
+- When We declare a Const variable in Rust, we are telling the compiler this variable must be computer and evaluated before execution of the program.
+- **How the compiler does it?**
+- Rust has a built-in interpreter inside of its compiler called **Miri**(Mid-level Intermediate Representation Interpreter). When you compile a program, Miri literally runs your ```const``` code inside of compiler.
+- Variable shadowing is the concept that, the Rust compiler will prioritize and use the second same name decalred variable, instead of using first one. One example may clarify:
+```rs
+fn main(){
+    let x = 5;
 
+    let x = x + 1;
+    {
+        let x = x * 2;
+        println!("The value of x in the inner scope is {x});
+    }
+
+    println!("The value of the x is: {x}");
+} 
+```
+- This program first creates and initialize x to 5. But then using shadowing by using the keyword ```let``` with the same variable name x, we overshadow the previous variable x and replace its value with x+1 which is 6. Now the value of x is 6 instead of 5. But within the inner scope, we shadow the new x=6 again and multiply it wiht 2 making it 12. But here is the thing, that shadowing is only available inside of that scope. As soon as we get outside of the scope, we see that x is back to 6 again. This would be the result:
+```shell
+$ cargo run
+   Compiling variables v0.1.0 (file:///projects/variables)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.31s
+     Running `target/debug/variables`
+The value of x in the inner scope is: 12
+The value of x is: 6
+```
+- How shadowing differs from mutability is that, if we tried to do just ```x=x+1;```, this would throw a compile time error, because x is not initialized as a mut variable. But using the keyword ```let``` lets us change the variable x to anything without initializing x as a mut variable.
+- Another advantage of shadowing is that, since ```let``` is creating a new variable with the same name,, we can also change the type of that variable. Such as:
+```rs
+let spaces = "     "; //1
+let spaces = spaces.len(); //2
+```
+Here the variable spaces//1 is a string type and variable spaces//2 is of type int. The keyword ```let``` lets us do that.
+- But with ```mut```, changing the value of variable is possible but changing its type is not. Such as:
+```rs
+let mut spaces = "    ";
+spaces = spaces.len();
+```
+And this should throw a compile-time err.
+```shell
+$ cargo run
+   Compiling variables v0.1.0 (file:///projects/variables)
+error[E0308]: mismatched types
+ --> src/main.rs:3:14
+  |
+2 |     let mut spaces = "   ";
+  |                      ----- expected due to this value
+3 |     spaces = spaces.len();
+  |              ^^^^^^^^^^^^ expected `&str`, found `usize`
+
+For more information about this error, try `rustc --explain E0308`.
+error: could not compile `variables` (bin "variables") due to 1 previous error
+```
+## Chapter 4: Data Types
+- Two data type subset: Scalar, and Compound.
+- A *scalar* type represents a single value. Rust has four primary scalar type data: Integer, float, Booleans, and characters.
+- ![Integer Type](./IntTypes.png)
+- Signed and unsigned integers refer whether it is possible for the number to be negative. A number that can never be negative such as values for distance can be represented using **unsigned** integer (Therefore no signs), and number that can be negative of value are represented using **Signed** integers.
+- Signed numbers are stored using the two's complement representation.
+- Each signed variant can store numbers from $-(2^{n-1})$ to $2^{n-1} - 1$ inclusive. Here $n$ is the number of bits that variant uses. So, an i8 can store number from $2^7$ to $2^7-1$, which equates to -128 to 127. And Unsigned variants can stored number from $0$ to $2^n$, where $n$ is the number of bits that variant uses.
+- Generally we use commas to separate big numbers such as 1,000,000. But in Rust, commas cannot be used to separate number. Instead we use (_) underscores such as 1_000_000; and the compiler understands it as 1,000,000.
+- **Rust default integer type is i32.**
+- 
