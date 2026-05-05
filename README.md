@@ -133,7 +133,7 @@ error[E0308]: mismatched types
 For more information about this error, try `rustc --explain E0308`.
 error: could not compile `variables` (bin "variables") due to 1 previous error
 ```
-## Chapter 4: Data Types
+## Chapter 3.2: Data Types
 - Two data type subset: Scalar, and Compound.
 - A *scalar* type represents a single value. Rust has four primary scalar type data: Integer, float, Booleans, and characters.
 - ![Integer Type](./IntTypes.png)
@@ -142,4 +142,101 @@ error: could not compile `variables` (bin "variables") due to 1 previous error
 - Each signed variant can store numbers from $-(2^{n-1})$ to $2^{n-1} - 1$ inclusive. Here $n$ is the number of bits that variant uses. So, an i8 can store number from $2^7$ to $2^7-1$, which equates to -128 to 127. And Unsigned variants can stored number from $0$ to $2^n$, where $n$ is the number of bits that variant uses.
 - Generally we use commas to separate big numbers such as 1,000,000. But in Rust, commas cannot be used to separate number. Instead we use (_) underscores such as 1_000_000; and the compiler understands it as 1,000,000.
 - **Rust default integer type is i32.**
-- 
+- Rust floating types are f32 and f64.
+- The default float type in Rust is f64.
+- <span style="color:lightblue">**All floating points are signed**</span>
+```rs
+fn main(){
+    let x = 4.2 //def f64
+    let x: f32 = 3.0 // set to 32 bit float
+    //Also reinforces that type can be changed using shadowing
+}
+```
+- In Rust, integer division just like any other programming langauge does not generate fraction or floats. it just goes to zero or near zero.
+- The **Boolean** type in Rust can be initiated either using explicit annotations or implicit annotations. Such as:
+```rs
+fn main(){
+    let x = true; //implicit
+
+    let x: bool = false; //explicit
+}
+```
+- Rust Char Data Types:
+```rs
+fn main(){
+    let a = 'a';
+    let b: char = 'B";
+    let smiley:char = ':)';
+}
+```
+- Notice we declare char datas using single quotations compared to String literals where we use double quotation.
+- Rust char data type is of 4 bytes, meaning it can not only represent ASCII chars but also other ACcented letters.
+### Compound Types
+- Compound types can group multiple values into one type. Rust has two primitive compound types: tuples and arrays.
+#### Tuples
+- A tuple is a general compound type that can take multiple data types values and combine them into one data type. They have fixed length and can not be changes once declared.
+- Syntax:
+```rs
+fn main(){
+    let tup: (datatypeRespectively, datatypeRespectively, datatypeRespectively) = (dataValueRespectively, dataValueRespectively, dataValueRespectively);
+}
+```
+- **Example**
+```rs
+fn main(){
+    let tup: (i32, f64, u32) = (-24, 3.64, 56);
+}
+```
+- One of the ways we can extract values out of a tuple data structure is to use variables and pattern matching:
+```rs
+fn main(){
+    let tuple: (i32, f32, u64) = (-24, 4.5, 21);
+    let(x,y,z) = tup;
+    // x should have the value -24
+    // y should have 4.5
+    // z should have 21
+    println!("The value of z is: {x});
+    println!("The value of y is: {y});
+    println!("The value of z is: {z});
+}
+```
+- This method of extracting data from tuple is called destructuring.
+- Tuple element can also be accessed and stored in variable using dot notation along with the values index.
+```rs
+fn main(){
+    let tuple: (i32, f64, u64) = (-24, 3.4, 21);
+    let x = tuple.0;
+    let y = tuple.1;
+    let z = tuple.2;
+
+    println!("The value of x is: {x}");
+    println!("The value of y is: {y}");
+    println!("The value of z is: {z}");
+
+}
+```
+- In Rust, a tuple without any values assigned to it is called a unit. The name unit comes from Type theory and Mathematics. 
+- A tuples number of possible values is the product of its elements possible values. An empty product in math equals to 1. One of the reason why tuples are called product types.
+#### Array
+- Another way to combine multiple values into one compound type is array.
+- Unlike Tuple, all values in array has to be of same type.
+- <span style="color:lightblue">**Unlike other languages where array can expand or decrease, Rust arrays are of fixed length**</span>
+- Syntax:
+```rs
+fn main(){
+    let a = [value, value, value, ....];
+    //Example
+    let b = [1,2,3,4];
+}
+```
+- Values inside of an Array Data structure lives on the stack, unlike some other data structure such as vector where its content lives in the heap.
+- Vectors unlike array are able to expand or shrink and its datas lives in heap.
+- Explicit declaration of array requires declaring data type and its size:
+```rs
+fn main(){
+    let array_name:[dataType; size] = [data];
+    // Example
+    let a: [i32, 5] = [1,2,3,4,5];
+}
+```
+- STart of Array....
