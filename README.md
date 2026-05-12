@@ -239,4 +239,155 @@ fn main(){
     let a: [i32, 5] = [1,2,3,4,5];
 }
 ```
-- STart of Array....
+## Functions
+- In Rust, just a refresher, the ```fn``` keyword is used to declare a function.
+- Unlike some other languages like ```C```, rust does not care where you define your function. Whether it is before the main() or after main(), as long as it is in the same scope and the caller can call it, it will work.
+```rs
+fn main(){
+	println!("Hello");
+	another();
+}  
+fn another(){
+	println!("Another");
+}
+```
+
+	- This works and
+```rs
+fn another(){
+	println!("Another");
+}
+fn main(){
+	println!("Hello");
+	another();
+}
+```
+- Works as well.
+- Function can also take in parameters within its braces.
+- The syntax: 
+```rs
+fn argument(variable_name: dataType){
+	//things the fn needs to execute
+}
+```
+- In rust fn signature, The signature is the braces of functions (), you must declare the type of each parameter.
+- When defining multiple parameters use commas to separate them:
+```rs
+fn arguments(x: i32, yo: String){
+	//THings to execute
+}
+```
+- **Rust is an expression based language**
+- ***Statements*** are instructions that perform some action and do not return a value.
+- ***Expression*** evaluate to a resultant value.
+- Rust is called ***an expression based language*** because almost everything evaluates to a value. Unlike ```C``` and ```Java``` where there is a sharp difference between expression (Produce a value) and statements (do something, produce nothing).
+- In Rust, in order to return values from a fn we do not use keywords like ```return```. Rather we use the concept of expression and use -> to denote at the fn header what type of data will be returned.
+```rs
+fn add(x: i32, y: i32)-> i32{
+	x + y
+}
+fn main(){
+	let x: i32 = 5;
+	let y: i32 = 6;
+	let sum: i32 = add(x,y);
+	println!("The sum of {x} & {y} is: {sum}");
+}
+```
+- Although the keyword ```return``` can be used to return a value from the function early if necessary.
+
+## ```if``` Expressions
+- Because ```if``` is an expression it can be used to provide value to variables being declared using ```let``` keyword.
+- Remember that block of code evaluates to the last expression in them and that can also be numbers. In this case, if one block returns a number expression and the rest of the if block or associated block also must return number type. We will get an error if types are mismatched in ```if``` arms:
+```rs
+fn main(){
+	let condition = true;
+	let y = if condition { 5 } else {"Wool"};
+	println!("The value of y is: {y}");
+}
+//this would throw an error because 5 is i32 and "wool" is char.
+//Not same data type in both if hands
+```
+- In Rust, the loop{} acts like while loop in other programs but has no boolean checking like while loop. Rather programmers uses keyword like ```break``` to break out of such loop.
+- loops can be labeled as such:
+```rs
+fn main(){
+    let mut count = 0;
+    'counting_up: loop {
+        println!("Count = {count}");
+        let mut remaining = 10;
+
+        loop {
+            println!("Remaining: {remaining}");
+            if remaining == 9 {
+                break;
+            }
+            if count == 2 {
+                break 'counting_up;
+            }
+            remaining -= 1;
+        }
+        count += 1;
+    }
+    println!("End count = {count}");
+}
+```
+- Typically ```break``` and ```continue``` works within the block of loop applied on. But if you want to specify a particular loop to be broken or continued within the entire block that when loop label comes in. 
+- **Loop Label must begin with single quote, but dont end with a single quote or any quote marks for that matter**
+- ```While``` loop:
+```rs
+while Condition {
+    //Do Task
+}
+//Example
+fn main(){
+    let mut number: u32 = 3;
+
+    while number != 0 {
+        println!("Yello!!");
+        number -= 1;
+    }
+}
+```
+- ```while``` loop can be used to loop over compound data types such as array or tuples.
+```rs
+fn main(){
+    let array: [i32; 5] = [1,2,3,4,5];
+
+    let mut index = 0;
+
+    while index < 5 {
+        println!("Values: {}", a[index]);
+
+        index += 1;
+    }
+}
+```
+- A better approach is ```for``` for traversing through arrays or tuples. Imagine you updated the array to habe 4 elements now, but forgot to update the ```while``` loop. Now the program will panick because it is still looking for the object at 4<sup>th</sup> element.
+- For loop for the same code snippet:
+```rs
+fn main(){
+    let a: [i32; 5] = [1,2,3,4,65];
+
+    for elements in a{
+        println!("Values: {elements}");
+    }
+}
+```
+- Also Rust default range can be used for for loop. You may remember how we set the range up for random numbers in guessing game using this notation ```(startingNum....EndingNum)```. In Rust for loop the same can be done to run the loop a certain time or from certain range as in:
+```rs
+fn main(){
+    for num in (1..4){
+        println!("{num}");
+    }
+}
+```
+- This code snippet will count up to 4 but not including 4. **REMEMBER THAT**
+- The countdown can also be done in reverse using the ```rev()``` fn. such as:
+```rs
+fn main(){
+    for num in (1..4).rev(){
+        println!("{num}");
+    }
+}
+```
+- Practice generating fibonacci number!!
