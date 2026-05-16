@@ -391,3 +391,96 @@ fn main(){
 }
 ```
 - Practice generating fibonacci number!!
+```rs
+use std::io;
+
+fn main(){
+
+}
+
+fn fibonnaci(n: i32) -> i32 {
+    let mut prev: i32 = 0;
+    let mut current: i32 = 1;
+
+    if n==0{
+        prev
+    } else if n == 1{
+        current
+    } else {
+        for fib in 2..=n{
+            let next = prev = current;
+            prev = current;
+            current = next;
+        }
+        current
+    }
+
+}
+```
+# Ownership
+- Ownership is the feature that makes Rust such memory safe language. This enables Rust to make memory safety guarantees without needing a garbage collector.
+- **Ownership** is a set of protocols that govern how a Rust program manages memory. All programs have to manage the way they use a computer's memory while running.
+- In the Stack, only data that are fixed in size should be stored. Dynamic data or data that may change in size should be stored in heap.
+- When you put data on the heap, you request a certain amount of space. The memory allocator looks for and finds an empty spot big enough to store the data you are intending on storing and marks that space as allocated/in use, after which it return a pointer(Pointer is value that points to that memory space).
+- **Allocating space in heap is known as allocating, but pushing data onto stack is not called allocating necessarily**
+- The pointer that is returned from the process of allocation is stored in stack. Why? Why the pointer of heap is stored in stack?? Because the simple reason is that pointer do not change in size. The size of allocated heap may change from 20Kb to 100Kb, but the address does not necessarily change.
+- ***Analogy***: Imagine you set up a banquet hall(BH02) for 50 people initially. But later on, the number of people increased to 80 people. So you just add more tables and chairs for the increased number of people. You do not necessarily change the entire banquet hall(BH02) and have people seat in different room. You just increased the capacity of BH02 but did not change the hall itself thus the address of remaining the same..
+- Typically pushing onto a stack is much faster than allocating on heap. The sheer reason is the allocator has to find the proper space for the data that is being allocated. Whereas on the stack this function of looking for space do not exist. A processor can work more efficiently if the data that needs to be processed is right next to the current data process. 
+- **NOTE**: The main purpose of **Ownership** is to manage heap data.
+- Ownership rules(Something to remember or perhaps practice on)
+    1. Each value in Rust has an owner.
+    2. There can only be one owner at a time.
+    3. WHen the owner goes out of scope, the value will be dropped.
+- A scope is the range within a program for which an item is valid.
+```rs
+fn main(){
+    // s is not valid here
+    let s = "Hello";
+    // The scope of var "s" start at
+    // First { and ends }. This var
+    // can not be accessed outside of
+    // this scope.
+}
+```
+- Such that this code snipper will not compile:
+```rs
+fn main() {
+    println!("Out of Scope {s}");
+    let s = "Hello";
+    println!("In scope {s}");
+}
+```
+```sh
+HOST@HOST-edu in repo: ownership/src on  main +/- [?] via 󱘗 v1.94.0 
+ 󰛓 ❯ cargo run
+   Compiling ownership v0.1.0 (/home/playaow/Documents/Rust/ownership)
+error[E0425]: cannot find value `s` in this scope
+ --> src/main.rs:3:28
+  |
+3 |     println!("Out of scope{s}");
+  |                            ^ not found in this scope
+
+For more information about this error, try `rustc --explain E0425`.
+error: could not compile `ownership` (bin "ownership") due to 1 previous error
+```
+## The ```String``` Type
+- String literal can be initiated using the from() function.
+```rs
+fn main(){
+    let s = String::from("Hello");
+}
+```
+- String initiated using from() can be mutated and additional data can be added to these.
+```rs
+fn main(){
+    let mut s = String::from("Hello");
+
+    s.push_str(", world"); //push_str appends a literal to a string
+    println!("{s}");
+}
+```
+- String literals such as ```let s = "Hello"``` is hardcoded in the program at compile time. You cannot change the size of this variable at runtime because it is stored at stack.
+- While as we can see, a ```String``` data type that lives on heap can be expanded and you can ask for more room to the OS depending on your need, it the room gets allocated at runtime.
+- 
+
+
