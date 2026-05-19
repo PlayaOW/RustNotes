@@ -136,7 +136,7 @@ error: could not compile `variables` (bin "variables") due to 1 previous error
 ## Chapter 3.2: Data Types
 - Two data type subset: Scalar, and Compound.
 - A *scalar* type represents a single value. Rust has four primary scalar type data: Integer, float, Booleans, and characters.
-- ![Integer Type](./IntTypes.png)
+- ![Integer Type](./pictures/IntTypes.png)
 - Signed and unsigned integers refer whether it is possible for the number to be negative. A number that can never be negative such as values for distance can be represented using **unsigned** integer (Therefore no signs), and number that can be negative of value are represented using **Signed** integers.
 - Signed numbers are stored using the two's complement representation.
 - Each signed variant can store numbers from $-(2^{n-1})$ to $2^{n-1} - 1$ inclusive. Here $n$ is the number of bits that variant uses. So, an i8 can store number from $2^7$ to $2^7-1$, which equates to -128 to 127. And Unsigned variants can stored number from $0$ to $2^n$, where $n$ is the number of bits that variant uses.
@@ -481,6 +481,160 @@ fn main(){
 ```
 - String literals such as ```let s = "Hello"``` is hardcoded in the program at compile time. You cannot change the size of this variable at runtime because it is stored at stack.
 - While as we can see, a ```String``` data type that lives on heap can be expanded and you can ask for more room to the OS depending on your need, it the room gets allocated at runtime.
+- When the variable "s" goes out of scope, Rust calls a special function for us called ```drop```, and it is where the author of ```String``` can put the code to return the memory.
+- Although this concept looks simple now, but it can become a problem in a production based program where we need multiple variable later on that needs to use that data, but that scope of the data is now met.... What do you do now??
+- Assigning value of one variable to another works when we are working with scalar data types, types such as i32, u32, i64, u63, char, boolean etc:
+```rs
+fn main(){
+    let x: i32 = 5;
+    let y: i32 = x;
+}
+```
+    
+* This will work because we are working with fixed sized data.
+- But lets try the same thing but with ```String``` type:
+```rs
+fn main(){
+    let s = String::from("Hello");
+    let h = s;
+    println!("{s}");
+    println!("{h}");
+}
+```
+- AND Drumrollllssssss
+```sh
+…opps in repo: ownership on  main +/- [?] is 󰏗 v0.1.0 via 󱘗 v1.94.0 took 16s157ms
+󰛓 ❯ cargo run
+Compiling ownership v0.1.0 (/home/oops/Documents/Rust/ownership)
+error[E0382]: borrow of moved value: `s`
+--> src/main.rs:5:16
+|
+2 |     let s = String::from("Hello");
+|         - move occurs because `s` has type `String`, which does not implement the `Copy` trait
+3 |     let h = s;
+|             - value moved here
+4 |     //s.push_str(", world");
+5 |     println!("{s}");
+|                ^ value borrowed here after move
+|
+= note: this error originates in the macro `$crate::format_args_nl` which comes from the expansion of the macro `println` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: consider cloning the value if the performance cost is acceptable
+|
+3 |     let h = s.clone();
+|              ++++++++
+
+For more information about this error, try `rustc --explain E0382`.
+error: could not compile `ownership` (bin "ownership") due to 1 previous error
+
+```
+- Wonder why this does not work especially with types like ```String``` that lives on the heap.
+- A ```String``` data type is made up of 3 parts:
+    * a **pointer** to the memory that holds the contents of the string.
+    * a **length**
+    * a **capacity**
+- These data that makes up the ```String``` data type are stored on the stack. So a pointer, length, and capacity all these values are stored on stack.
+![String Arc](./pictures/STringARC.png)
+- And on the right side of the image is the ***heap*** that contains the actual data that ```String``` instance holds.
+- The ***ptr*** is a pointer that is pointing to the memory location of the heap that contains the data.
+- The ***length*** is how much memory, ***in bytes***, the contents of the ```String``` instance are currently using.
+- The ***capacity*** is the total amount of memory the ```String``` received ***in bytes*** from the allocator.
+- So when we assign ```s``` to ```h```, we actually assign the pointer value, length and capacity that is associated with ```s``` to ```h```. The data on the stack gets copied into ```h```, but the actual content that resides on the heap does not get copied to ```h```.
+![memoryAllocation](./pictures/rust_move_stack_heap.svg)
+- And this action also deletes ```s``` as the owner of the data bytes "Hello" since in Rust, only one variable can point to one block of heap data at a time.
+- Here is what happens when we assign ```s``` to ```h```:
+```rs
+fn main(){
+    let s = String::from("Hello");
+    let h = s;
+    println!("{s}");
+} 
+```
+```sh
+󰛓 ❯ cargo run
+Compiling ownership v0.1.0 (/home/opps/Documents/Rust/ownership)
+error[E0382]: borrow of moved value: `s`
+--> src/main.rs:5:16
+|
+2 |     let s = String::from("Hello");
+|         - move occurs because `s` has type `String`, which does not implement the `Copy` trait
+3 |     let h = s;
+|             - value moved here
+4 |     //s.push_str(", world");
+5 |     println!("{s}");
+|                ^ value borrowed here after move
+|
+= note: this error originates in the macro `$crate::format_args_nl` which comes from the expansion of the macro `println` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: consider cloning the value if the performance cost is acceptable
+|
+3 |     let h = s.clone();
+|              ++++++++
+
+warning: unused variable: `h`
+--> src/main.rs:3:9
+|
+3 |     let h = s;
+|         ^ help: if this is intentional, prefix it with an underscore: `_h`
+|
+= note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+For more information about this error, try `rustc --explain E0382`.
+warning: `ownership` (bin "ownership") generated 1 warning
+error: could not compile `ownership` (bin "ownership") due to 1 previous error; 1 warning emitted
+```
+- If Rust allowed 2 vars to points to the same memory block, when both vars go out of scope, they will both try to free the same memory block. This sounds like a problem and it is. This problem is known as ***Double free error*** and is one of the safety memory bugs.
+- Freeing memory twice and letting user free same memory block is a recipe for security valnerabilities.
+- This is one of the reason Rust takes off ```s```'s ownership of the heap memory block from it once it is assigned to ```h```. This effectively ensures the problem of ***Double Free Error*** does not occur.
+- Such as in C, there is no mechanism such as **ownership**, reason why ***Double Free Error*** is relatively common in ```C```:
+```c
+#include <stdlib.h>
+
+int main() {
+    int *ptr = (int *)malloc(sizeof(int)); // Allocate memory
+    if (ptr == NULL) return 1;
+
+    free(ptr); // First free: OK
+    free(ptr); // Second free: DOUBLE FREE ERROR
+
+    return 0;
+}
+```
+- Lets review the concept of Shallow and Deep copy:
+    * **Shallow Copy**: creates a new object with copied stack fields, but any heap data those fields point to is shared — not duplicated. Both the original and the copy point at the same memory.
+    * **Deep Copy**: creates a new object with copied stack fields and duplicates the heap data into a completely new memory allocation. The two objects are fully independent.
+![ShallowVSDeep](./pictures/shallow_vs_deep_copy.svg)
+- One of the bigger difference between deep and shallow copy is that, in shallow copying making any changes to the original variable will also change the shallow copied variable. But with deep copy, making any changes to the original variable wont effect the deep copied variable.
+- Now that review is done, looking at the assigning action of ```s``` to ```h``` looks very similar to shallow copy right. Pointer, length, and capacity being copied and all. But one difference is that the original variable ```s``` does not own that heap memory block anymore after shallow copy and ownership transfers onto the new variable ```h```.
+- Since this is not entirely a shallow copy, in Rust it is called move rather.
+- It is also a design choice, considering Rust will never automatically create Deep Copies of your data because automatic copy can be assumed to be expensive in terms of runtime performance.
+## Scope and Assignment
+- When you assign new data to the existing variable, Rust also calls the ```drop``` in that circumstance as well.
+```rs
+fn main(){
+    let mut s = String::from("Hello");
+    // Data Now "Hello" stored in some memory block 0x01
+    // drop() called
+    s = String::from("YOOO");
+    // Now Data "YOOO" stored in some other memory block 0x02
+} //drop called again to get s OOS
+```
+![DataAssignment](./pictures/string_reassign_memory.svg)
+- When new data is assigned the previous memory block that contained "Hello" is freed and a new memory block (lets say 0x02) is assigned for the new data "YOOO"
+- This program also prints out the mem location so it is more intuitive:
+```rs
+fn main() {
+    let mut s = String::from("Hello");
+    println!("Before: {:p}", s.as_ptr());  // prints heap address of "Hello"
+
+    s = String::from("YOOO");
+    println!("After:  {:p}", s.as_ptr());  // prints heap address of "YOOO"
+}
+```
+```sh
+󰛓 ❯ cargo run
+Compiling ownership v0.1.0 (/home/oops/Documents/Rust/ownership)
+Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.14s
+Running `target/debug/ownership`
+Before: 0x5581a2034d50
+After:  0x5581a2034d70
+```
 - 
-
-
