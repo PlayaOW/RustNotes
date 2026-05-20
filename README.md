@@ -637,4 +637,233 @@ Running `target/debug/ownership`
 Before: 0x5581a2034d50
 After:  0x5581a2034d70
 ```
+- In order to actually copy not only the stack data but also heap data, a method such as ```clone``` can be used to copy everything within the data.
+```rs
+fn main(){
+    let s = String::from("Hello");
+
+    let h = s.clone();
+
+    println!("s = {s}, h={h}");
+}
+```
+- But ownership does not work for data that are not fixed size. Meaning the kind of data that has a size that is known at compile time.
+- Fixed size data are stored on the stack and they can be copied into other variable without invalidating the previous variable.
+```rs
+fn main(){
+    let x: i32 = 5;
+    let y: i32 = x;
+
+    println!("x={x}, y={y}");
+}
+```
+- This should work because the concept of deep and shallow copy do not exist when data is on stack. So Rust does not invalidate ```x``` and both ```x``` and ```y``` works in this case.
+- The previous example is an example of Rust's ```Copy``` trait. In rust, when a known sized variable is assigned to another known sized variable, the old variable is not moved but rather copied into the new variable while also retaining it original place in stack.
+- The ```Copy``` in not implemented on a variable if that variable or any part of it has to use the ```drop``` trait later down the line. Such as a ```String``` type has to use ```Drop``` trait once it goes out of scope. You cannot use the ```Copy``` trait on that ```String``` type, and using it will give you compile time error.
+- When it comes to assigning or passing a variable as argument to a function, it works the same way depending on the type it may copy or move.
+- Passing a variable of types that lives on the heap to a function will take the ownership of the data from that variable. Such as:
+```rs
+fn main(){
+    let s = String::from("Hello");
+    move_here(s);
+    println!("s={s}"); //Should be err here
+}
+fn move_here(some_string: String){
+    println!("{s}");
+}
+```
+- And as expected:
+```sh
+❯ cargo run
+   Compiling ownership v0.1.0 (/home/oops/Documents/Rust/ownership)
+error[E0382]: borrow of moved value: `s`
+ --> src/main.rs:4:16
+  |
+2 |     let s = String::from("Hello");
+  |         - move occurs because `s` has type `String`, which does not implement the `Copy` trait
+3 |     move_here(s);
+  |               - value moved here
+4 |     println!("{s}");
+  |                ^ value borrowed here after move
+  |
+note: consider changing this parameter type in function `move_here` to borrow instead if owning the value isn't necessary
+ --> src/main.rs:6:27
+  |
+6 | fn move_here(some_string: String){
+  |    ---------              ^^^^^^ this parameter takes ownership of the value
+  |    |
+  |    in this function
+  = note: this error originates in the macro `$crate::format_args_nl` which comes from the expansion of the macro `println` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: consider cloning the value if the performance cost is acceptable
+  |
+3 |     move_here(s.clone());
+  |                ++++++++
+
+For more information about this error, try `rustc --explain E0382`.
+error: could not compile `ownership` (bin "ownership") due to 1 previous error
+```
+- The error output is pretty self-explanatory and can be seen what is going wrong here. By passing the variable "s" as arg to the fn move_here, we moved the variable ```s``` into the variable of function ```some_string```. And after passing the variable ```s``` to the fn, when we try to print the variable ```s``` again, we see a ownership related error. It is because once we pass ```s``` as an argument to a function we are moving the variable into the variable the function uses, in this case it is ```some_string```. And this takes ownership of the memory block from ```s``` and assigns it to ```some_string```. Thus ```s``` goes out of scope.
+- But copying works on scalar data types. When we are doing the exact same thing but with a scalar data type of ```i32``` and it works and the original variable also stays the same and does not move. It retains its own stack space:
+```rs
+fn main() {
+    let s = String::from("Hello");
+    move_here(s);
+    //println!("{s}");
+    let y: i32 = 5;
+    copy_here(y);
+    println!("y={y}");
+}
+fn move_here(some_string: String){
+    println!("{some_string}");
+}
+fn copy_here(x: i32){
+    println!("{x}");
+}
+```
+```sh
+ 󰛓 ❯ cargo run
+   Compiling ownership v0.1.0 (/home/oops/Documents/Rust/ownership)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.08s
+     Running `/home/oops/Documents/Rust/ownership/target/debug/ownership`
+Hello
+5
+y=5
+```
+- It works perfectly fine and the old variable ```y``` still retains its stack space and associated value.
+- A function that return values can also assign or change ownerships depending on how it is implemented:
+```rs
+fn gives_ownership() -> String{
+    let s = String::from("yours");
+    s
+}
+// This function assigned to a variable x, will take the ownership of memory block from its internal variable s, and hand it over to x.
+```
+```rs
+fn takes_and_gives(s: String) -> String{
+    s
+}
+// This function takes a ownership from a variable and assign it to another.
+```
+```rs
+fn main(){
+    //full picture
+    let s = gives_ownership();
+    println!("{s}");
+    // this transfers ownership of internal variable
+    // x to the main variable s.
+    // Now s owns the memory block
+    // x used to own and x owns nothing
+    let s2 = String::from("hello");
+    println!("{s2}");
+    let s3 = takes_and_gives(s2);
+    println!("s2 out of scope now, s3={s3}");
+
+    // s2 takes a memory block w content
+    // "hello"
+    // s3 now implements the fn
+    // takes and gives, and it takes
+    // ownership of s2 and assigns it
+    // to s3 now.
+}
+
+fn gives_ownership()->String{
+    let x = String::from("Yours");
+    x
+}
+
+fn takes_and_gives(s: String) -> String{
+    s
+}
+```
+```sh
+❯ cargo run
+   Compiling ownership v0.1.0 (/home/oops/Documents/Rust/ownership)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.08s
+     Running `/home/oops/Documents/Rust/ownership/target/debug/ownership`
+Yours
+hello
+s2 out of scope now, s3=hello
+```
+- As we can see functions can be used to transfer ownerships of data. But here is the problem. What if we want to take data as arguments to function but do not want that data to be invalidated as soon as the function goes out of scope. According to ownership rule it seems impossible.
+- Rust does let us return tuples with multiple values:
+```rs
+fn main(){
+    let c =  String::from("Hello");
+    let (s, len) = string_len(c);
+    println!("String: {s}, and length: {len}");
+}
+
+fn string_len(s: String) -> (String, usize){
+    let length = s.len();
+    (s, length)
+}
+```
+- Luckily Rust has a mechanism for passing in values into function without having that argument var lose it ownership of the data. It is called ```references```.
+- A **reference** is like a pointer in that it's an address we can follow to access the data stored at that address; that data is owned by some other variable. Unlike a pointer, a reference is guaranteed to point to a valid value of a particular type for the life of that reference.
+## Pointer VS Reference
+### Raw Pointer
+- A raw pointer is just memory address with no rules attached. Rust has two kinds:
+```rs
+fn main(){
+    let x = 5;
+    let p: *const i32 = &x; //immutable pointer
+    let p1: *mut i32 = &mut x;
+    //Mutable Pointer
+}
+```
+- Raw pointers are essentially "C" style pointers and Rust lets you have them, but:
+    * The compiler puts ***zero guarantees*** on them.
+    * Dereferencing them requires an ```unsafe``` block.
+    ```rs
+    unsafe {
+        println!("{}", *p) //you are on your own here
+    }
+    ```
+    * They can be null, dangling, misaligned. Rust won't stop you.
+### Reference
+- A reference is a pointer with a compiler enforced rules on top.
+```rs
+fn main(){
+    let x = 5;
+    let r: &i32 = &x; //Immutable Ref
+    let r2: &mut i32 = &mut x; //Mutable Ref
+    println("{}", *r); //No unsafe needed
+}
+```
+- Rules enforced on Reference:
+    * Always valid: Can never be null or dangling.
+    * Always point to live value: compiler guarantees this via lifetimes.
+    * Either one mutable reference OR any number of immutable references at a time, never both simultaneously.
+- By ***zero guarantee***, with Raw pointer, Rust means the checks done by compiler is completely off when used raw pointer. Normally Rust guarantees:
+    * The value is always initialized before use.
+    * This memory is always valid and alive.
+    * No two things can mutate the same data simultaneously.
+- In Rust ```unsafe``` block is needed when dereferencing a pointer. Typically in a language like ```C```, you won't need an unsafe block to deref a pointer. But is Rust you do, it is almost like Rust is asking you to a sign a waiver saying "I know what I am doing, If anything goes wrong it is not your fault."
+--------------------------------------
+**Well now that, we looked at the difference between Pointer and Reference, Lets get back to the prev program**
+- Here is how the function ```calculate_len``` can be used without taking ownership of the variable being passed as args:
+```rs
+fn main(){
+    let s = String::from("hello");
+    let len: usize = calculate_len(&s);
+
+    println!("{s} everyone");
+    // s is still valid and have ownership
+    println!("Length of s: {len}");
+    // len variable is a separate entity
+    // and calculate_len did not take
+    // ownership away from s
+}
+
+fn calculate_len(s: &String) -> usize{
+    let length: usize = s.len();
+    length
+}
+```
+- An analogy that can clear things up when it comes to reference is that, reference is a mechanic. He knows the address of the mechanic shop he works at. He goes there and uses the tools belonging to the mechanic shop to accomplish his task or function. But he does not own those tools. He just has limited access to them when needed.
+- How this analogy holds up:
+    * The mechanic can use the tools (eg data), but the tool never leaves the shop.
+    * The shop owner still owns the shop.
+    * If the mechanic only has read access (```&T```), he can look at and use the tools but cannot modify them. Immutable tools.
+    * If the mechanic has special permissions ```&mut T```, he can rearrange or modify the tools.
 - 
