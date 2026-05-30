@@ -866,4 +866,407 @@ fn calculate_len(s: &String) -> usize{
     * The shop owner still owns the shop.
     * If the mechanic only has read access (```&T```), he can look at and use the tools but cannot modify them. Immutable tools.
     * If the mechanic has special permissions ```&mut T```, he can rearrange or modify the tools.
-- 
+- This action of using a reference rather than taking the entire value is called ***borrowing*** as in real life, when you borrow something from a person who owns something, you do have to give it back. You cannot take ownership of it. Just like that the arg variable "s" does not take the ownership of fn main() -> s, but rather just borrow what fn main() -> s has and gives the ownership back once calculate_len() -> s goes out of scope.
+- And unlike other languages such as C, or C++, where you can reference an object and change the content of the object you are referencing to within a function, in rust you cannot do that. As in:
+```rs
+fn main(){
+    let s = String::from("Hello");
+    
+    change_var(&s);
+
+    println!("{s}");
+}
+
+fn change_var(some_string: &String) -> String{
+    some_string.push_str(", world");
+    some_string
+}
+```
+- ANd you should see something like this:
+```shell
+oops@oop-edu in repo: ownership/src on  main +/- [?] via 󱘗 v1.94.0 
+ 󰛓 ❯ cargo run
+   Compiling ownership v0.1.0 (/home/playaow/Documents/Rust/ownership)
+error[E0596]: cannot borrow `*some_string` as mutable, as it is behind a `&` reference
+  --> src/main.rs:10:5
+   |
+10 |     some_string.push_str(", world");
+   |     ^^^^^^^^^^^ `some_string` is a `&` reference, so it cannot be borrowed as mutable
+   |
+help: consider changing this to be a mutable reference
+   |
+ 9 | fn change_var(some_string: &mut String){
+   |                             +++
+
+For more information about this error, try `rustc --explain E0596`.
+error: could not compile `ownership` (bin "ownership") due to 1 previous error
+```
+- Although lets try to the same thing but declaring ```s``` as mutable:
+```rs
+fn main(){
+    let mut s = String::from("Hello");
+
+    change_var(&mut s);
+
+    println!("{s}");
+}
+fn change_var(some_string: &mut String){
+    some_string.push_str(", world");
+}
+```
+- And this works:
+```shell
+ playaow@jo in repo: ownership/src on  main +/- [?] via 󱘗 v1.94.0 
+ 󰛓 ❯ cargo run
+   Compiling ownership v0.1.0 (/home/playaow/Documents/Rust/ownership)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.18s
+     Running `/home/playaow/Documents/Rust/ownership/target/debug/ownership`
+Hello, world
+```
+- **One big security design that Rust implements in terms of ```mut``` reference is that, if one mut reference is made, you cannot have any other mut reference to that same value.**
+- But a workaround is that, you can create multiple references of mutable object by wrapping the references inside of curly brackets.
+```rs
+fn main(){
+    let mut s = String::from("Hello World");
+
+    {
+        let r = &mut s;
+        println!("{r}");
+    }
+    let r1 = &mut s;
+    println!("{r1}");
+}
+```
+```shell
+ playaow@lol-edu in repo: ownership/src on  main +/- [?] via 󱘗 v1.94.0 
+ 󰛓 ❯ cargo run
+   Compiling ownership v0.1.0 (/home/playaow/Documents/Rust/ownership)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.08s
+     Running `/home/playaow/Documents/Rust/ownership/target/debug/ownership`
+Hello World
+Hello World
+```
+- Same with combining mutable and immutable ref. If you already made a immutable ref to a mutable object and then tried to create another ref of mutable type to the same object you would get an error.
+```rs
+fn main(){
+    let mut s = String::from("Rust");
+
+    let _r = &s;
+    let _r1 = &mut s;
+
+    println!("{_r}");
+    println!("{_r1}");
+}
+```
+```shell
+󰛓 ❯ cargo run
+   Compiling ownership v0.1.0 (/home/playaow/Documents/Rust/ownership)
+error[E0502]: cannot borrow `s` as mutable because it is also borrowed as immutable
+ --> src/main.rs:5:15
+  |
+4 |     let _r = &s;
+  |              -- immutable borrow occurs here
+5 |     let _r1 = &mut s;
+  |               ^^^^^^ mutable borrow occurs here
+6 |
+7 |     println!("{_r}");
+  |                -- immutable borrow later used here
+
+For more information about this error, try `rustc --explain E0502`.
+error: could not compile `ownership` (bin "ownership") due to 1 previous error
+```
+- **NOTE**: You can take multiple immutable reference for an mutable or immutable object. BUT, you cannot take mutable ref to an immutable object.
+- **NOTE**: The scope of references are from the time they are introduced to the point they are used. Once they are used, you can create another mutable reference without any problem:
+```rs
+fn main(){
+    let mut s = String::from("Rust");
+
+    let r = &mut s;
+    println!("{r}");
+
+    let r1 = &mut s;
+    println!("{r1}");
+}
+```
+```shell
+󰛓 ❯ cargo run
+   Compiling ownership v0.1.0 (/home/playaow/Documents/Rust/ownership)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.08s
+     Running `/home/playaow/Documents/Rust/ownership/target/debug/ownership`
+Rust
+Rust
+```
+- This works because the first mut ref ```r``` is used and thus ```r```scope is cleared and second mut ref ```r1``` start later which is then subsequently and compiler passed it.
+### Dangling References
+- ***Dangling Pointer***: A pointer that reference a memory block that may have been given to someone else. eg: freeing some memory block while preserving a pointer to that memory.
+- In languages like C/C++, a dangling pointer occurs when a pointer holds a memory address that has already been freed. Accessing it leads to undefined behavior — garbage values, crashes, or silent corruption.
+Rust prevents this entirely at compile time using its borrowing rules. Consider this example:
+- Rust in contrast prevents dangling pointer by using borrowing mechanism:
+```rs
+fn main(){
+    let dangling_pointer = dangling();
+}
+fn dangling() -> &String{
+    let s = String::from("Hello");
+    &s
+}
+```
+- ```s``` is declared inside dangling, so its scope is tied to that function. The moment ```dangling``` finishes, ```s`` goes out of scope and Rust calls ```drop()```, freeing the heap memory that "Hello" was stored in. Returning ```&s``` would hand the caller a reference pointing at memory that no longer exists.
+
+### Different Types of References
+#### The Slice Type
+- ***Slices*** lets you reference a contiguous sequence of elements in a <span style="color:lightblue">collection</span>. A slice is a reference type, so it does not change or take ownership away.
+#### String Slices
+- A String slice is a reference to a contiguous sequence of the elements of a String.
+```rs
+fn main(){
+    let s = String::from("Hello, World");
+
+    let hello = &s[0..6];
+    let world = &s[7..];
+}
+```
+- In this case, rather than referencing the entirety of the String, we make 2 references. The ```hello``` that refers to the data "Hello," and ```world``` that refers to the rest of the data which is "World". The syntax is ```&var_Name[StartingINdex...EndingIndex]```. The slice data type stores the starting position and the length of the slice, which corresponds to ```ending_index``` - ```starting_index```. So in this case the slice ```world``` would point to the starting bytes of ```s``` which is "w" and it length is 5. 
+- Even this works. It works just like ```Python``` slicing:
+```rs
+fn main(){
+    let s = String::from("Hello, World");
+
+    let hello = &s[0..6];
+    let world = &s[7..];
+
+    println!("{:?}", hello);
+    println!("{:?}", world);
+
+    let hello1 = &s[..6];
+    let world1 = &s[7..];
+
+    println!("{:?}", hello1);
+    println!("{:?}", world1);
+
+    let len = s.len()
+    let string = &s[..len];
+
+    println!("{:?}", string);
+    
+    let string1 = &s[..];
+
+    println!("{:?}", string1);
+    
+}
+```
+![String_Slice](./pictures/StringSlicing.png)
+- Example of Immutable to Mutable
+```rs
+fn main(){
+    let mut s = String::from("Hello, World");
+    let word = first_word(&s);
+
+    s.clear();
+
+    println!("The first word is: {word}");
+}
+
+fn first_word(s: &String) -> &str {
+    let bytes = s.as_bytes();
+
+    for(i, &item) in bytes.iter().enumerate() {
+        if item == b' ' {
+            return &s[0..i];
+        }
+    }
+    &s[..]
+}
+```
+- This does not work, because first we took immutable ref, then tried to take mutable ref using ```s.clear()```, the ```clear()``` takes mutable ref. Taking immutable ref of an object and then without using the immutable ref first (Which takes the imut ref out of scope) trying to create a mut ref would throw an error.
+```shell
+|     let word = first_word(&s);
+  |                           -- immutable borrow occurs here
+4 |
+5 |     s.clear();
+  |     ^^^^^^^^^ mutable borrow occurs here
+6 |
+7 |     println!("The first word is: {word}");
+  |                                   ---- immutable borrow later used here
+
+For more information about this error, try `rustc --explain E0502`.
+error: could not compile `ownership` (bin "ownership") due to 1 previous error
+```
+- **String literals in Rust are stored inside of the binary executable**
+- &str is an immutable reference.
+- A &String slice and &str slice are the same thing in rust. And this is made automatic by Rust which uses a feature called deref coercion. 
+- **Reference to a String and whole Slice of a String are the same thing**.
+
+# Struct
+- A ***struct** or structure is a custom data type that lets you package together name, multiple related values that make up a meaningful group. A struct is like a object's data attribute.
+- ```Struct``` are like ```tuples``` in that they can hold values of multiple types. But unlike ```tuples```, where you just get to define the types of the data stored such as: ```let s: (i32, i64, u32, char) = (1,2,3,'c');```, and then have to use the variable ```s``` to refer to piece of data. In Struct, you can name each piece of the data you define inside of it.
+- Being able to add names/labels to your data means you have more flexibility. You can access that part of the data without remembering the sequence or index. You can just call it by name. And for us humans, recalling names is much easier compared to remembering numbers.
+- In Rust, to define a struct, we use the ```struct``` keyword as in ```struct structName {}```. A struct name should describe the significance of the pieces of data being grouped together.
+- Inside the curly brackets {}, we define the names and types of the data we are grouping together. These are called fields.
+Below is an example of a struct that stores and groups data related to an user account:
+```rs
+struct User {
+    active:bool,
+    username: String,
+    email: String,
+    sign_in_count: i32,
+}
+```
+- To use a struct after we have defined it, we create an object of the struct DataType or instance of that defined struct and fill out values for each of the fields.
+- After creating the instance, we want to write out the name of the struct, in this case ```User{}```, inside the curly brackets we write down the field name and provide appropriate values to those field.Just like this:
+```rs
+struct User{
+    active:bool,
+    name:String,
+    age:i32,
+    sign_in_last: u32,
+}
+fn main(){
+    let ray:User = User{
+        active: true,
+        name: String::from("Ray"),
+        age: 24,
+        sign_in_last: 60,
+    };
+    println!("Name: {0}", ray.name);
+}
+```
+- **You do not have to maintain the order of fields when setting them up with appropriate values**.
+- In order to get access to a specific value from struct we use dot notation as in ```StructName.Key```, where ```Key``` is the field name. 
+- Also with dot notation, you can change or update the value that resides with the key if the instance is mutable. As in, in the previous example, if ray is mutable you can change age by using dot notation like this:
+```rs
+struct User {
+    active: bool,
+    name: String,
+    age: i32,
+    sign_in_count: u64,
+}
+fn main(){
+    let mut ray: User = User{
+        active: true,
+        name: String::from("Ray"),
+        age: 27,
+        sign_in_count = 3,
+    };
+
+    ray.age = 29;
+}
+```
+- ***NOTE***: Rust does not allow only specific fields to be mutable. Either the intire instance of the struct has to be mutable or not mutable at all.
+- Also functions can be used to return a user instance:
+```rs
+fn create_user(name: String, age: i32, active: bool, sign_in_count: u64)-> User{
+    User {
+        active: active,
+        name: String::from(name),
+        age: age,
+        sign_in_count: sign_in_count,
+    }
+}
+```
+- Now this works, but imagine if you are working with a huge struct with a lots of fiels. Imagine writing age:age, name:name, and all these key:pair values over and over again for multiple instances. The Field Init shorthand at least prevents developer from writing key:value pairs in a function like build_user over and over again. In field init system, since the fn args and struct field name are the same, we can do this:
+```rs
+fn build_user(name: String, email: String) -> User{
+    User{
+        name,
+        email,
+        active: true,
+        sign_in_count: 2,
+    }
+}
+```
+- Whatever developers provide us in the fn arguments will automatically get assigned to the appropriate fields. No need to do name: name, anymore. Especially if the field and fn args match in name.
+## Creating Instances with Struct Update Syntax
+- It is often useful when creating new instance of the same type, to use some of the value of other instance. Such as lets say we are to introduce a new employee in the company. We are creating a user details. here is how we can do that using the previous employee "ray" instance to create "mahi" instance.
+```rs
+struct User {
+    name: String,
+    email: String,
+    age: i32,
+    sign_in_count: u32,
+}
+fn main(){
+    let ray: User = User{
+        name: String::from("Ray"),
+        email: String::from("email.com"),
+        age: 29,
+        sign_in_count: 3,
+    };
+
+    let mahi: User {
+        name: String::from("Mahi"),
+        email: String::from("yo.com"),
+        age: ray.age,
+        sign_in_count: ray.sign_in_count,
+    };
+}
+```
+- But that is where the update syntax [..] comes in. We can use this to accomplish this a lot easier:
+```rs
+struct User{
+    name: String,
+    email: String,
+    age: i32,
+    sign_in_count: u32,
+}
+fn main(){
+    let ray: User = User{
+        name: String::from("ray"),
+        email: String::from("email.com"),
+        age: 29,
+        sign_in_count: 2,
+    };
+
+    let mahi: User = User{
+        name: String::from("Mahi"),
+        email: String::from("yo.com"),
+        ..ray
+    };
+}
+```
+- This ```..ray``` means the remaining key:values that are not set are identical to the instance of ```ray```, copy the rest of the key:value pairs from the instance ```ray``` and paste them in there. So the key:value pairs ```age``` and ```sign_in_count``` would be pasted here and would have the same value as the object ```ray```.
+- This type of syntax must come at the bottom of the instance initiation process. You cannot put that on the top of other key:value pairs the do differ from the instance that you are copying some value from.
+## Tuple Struct
+- Tuple struct looks similar to tuples, but like struct they provide the meaning the struct name provides but do not have names associated with their field, rather they just have the types of the fields. Syntax:```struct TupleStructName (types, types, types, .....)```
+- Example:
+```rs
+struct Color(i32, i32, i32);
+struct Point(i32, i32, i32);
+
+fn main(){
+    let black = Color(0,0,0);
+    let origin = Point(0,0,0);
+}
+```
+## Unit-Like Structs
+- You can declare a struct without any fields. These are called unit-like structs. This is similar to unit tuple (), which has no data inside of them. Essentially a void data type.
+- These void structs holds no data. But they can be used to hang trait behavior on:
+```rs
+struct JsonSerializer;
+struct XmlSerializer;
+
+trait Serialize {
+    fn serialize(&self, data: &str) -> String;
+}
+
+impl Serialize for JsonSerializer {
+    fn serialize(&self, data: &str) -> String {
+        format!("{{\"data\": \"{data}\"}}")
+    }
+}
+
+impl Serialize for XmlSerializer {
+    fn serialize(&self, data: &str) -> String {
+        format!("<data>{data}</data>")
+    }
+}
+```
+- Example:
+```rs
+struct AlwaysEqual;
+
+fn main(){
+    let subject: AlwaysEqual = AlwaysEqual;
+}
+```
+- In order to use reference in struct data type in Rust, we need to use something called ***lifetime*** in Rust. *Lifetime* ensures the data referenced by a struct is valid for as long as the struct is.
