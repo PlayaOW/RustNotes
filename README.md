@@ -1270,3 +1270,193 @@ fn main(){
 }
 ```
 - In order to use reference in struct data type in Rust, we need to use something called ***lifetime*** in Rust. *Lifetime* ensures the data referenced by a struct is valid for as long as the struct is.
+# Enum
+- Enum can be used when you need to express multiple data sets that are separate from other and both cannot exist within the same domain. eg: IPv4 and IPv6 are not the same standard and a web application cannot take IPv4 and IPv6 addressing at the same time. Typically it takes IPv6 only when IPv4 fails.
+```rs
+enum AddrKind{
+    V4,
+    V6,
+}
+
+fn main(){
+    let ip4 = AddrKind::V4;
+    let ip6 = AddrKind::V6;
+}
+```
+- The field like objects inside of enum are called variants unlike ```struct``` where they are called fields.
+- The variants of the enum are namespaced under its identifier, and we use double colon ```::``` to separate the two. This is useful because now both ```ip4``` and ```ip6``` are of the same type ```AddrKind``` and we can create a function that takes any sort of variant of the ```AddrKind```.
+```rs
+fn route(ip_kind: AddrKind) {}
+```
+- And this function can be called on any of these variant:
+```rs
+route(ip4);
+route(ip6);
+```
+- ```Struct``` fields can be defined for enum types:
+```rs
+enum IPAddrKind{
+    V4;
+    V6;
+}
+struct IPAddresses{
+    kind: IPAddrKind,
+    address: String,
+}
+
+fn main(){
+    let home = IPAddresses{
+        kind: IPAddrKind::V4,
+        address: String::from("127.0.0.1"),
+    };
+}
+```
+- Now rather than having separate structs for enum in order to have each enum type carry some value, this can be done directly inside of the enum variant itself.
+```rs
+enum IPAddrKind{
+    V4(String),
+    V6(String),
+}
+fn main(){
+    let ip4 = IPAddrKind::V4(String::from("192.178.1.67"));
+    let ip6 = IPAddrKind::V6(String::from("::1"));
+}
+```
+- Also structs can be applied inside of enums as well:
+```rs
+struct IPv4{
+    kind: IPs,
+    address: String,
+    src_port: u8,
+    dst_port: u8,
+    tta: u8,
+}
+struct IPv6{
+    kind: IPs,
+    address: String,
+    src_port: u8,
+    dst_port: u8,
+    tta: u8,
+}
+enum IPs{
+    V4(IPv4),
+    V6(IPv6),
+}
+impl IPs{
+    //some function
+    fn route(&self) {}
+}
+fn main(){
+    let ip4 = IPv4{
+        address: String::from("192.167.90.123/24"),
+        src_port: 80,
+        dst_port: 443,
+        tta: 6,
+    };
+
+    let ip6 = IPv6{
+        address: String::from("::1"),
+        src_port: 80,
+        dst_port: 443,
+        tta: 10,
+    };
+
+    let ipAddr2 = IPs::V6(ipv6);
+    let ipAddr = IPs::V4(ip4);
+    ipAddr.route();
+    ipAddr2.route();
+}
+```
+- Also instead of having separate ```struct```s for each variant also this can be done:
+```rs
+enum IPs{
+    V4(String, u8, u8, u8),
+    V6(String, u8, u8, u8),   
+}
+
+fn main(){
+    let ipv4 = IPs::V4(String::from("192.167.90.123/24"), 80, 443, 10);
+    ipv4.route();
+}
+```
+- Another way of defining enum:
+```rs
+enum Message{
+    Quit, //Unit-Like Struct
+    Move{
+        x: i32,
+        y: i32
+    }, //general Struct
+    Write(String), //One Tuple struct
+    ChangeColor(i32, i32, i32), //Multiple Tuple value struct
+    // And all of these structs inside enum are considered variant...
+}
+```
+```rs
+struct Ray{
+    name: String,
+    age: u8,
+}
+
+enum Person{
+    P1(Ray),
+}
+impl Person{
+    fn call(&self){
+        match self{
+            Person::P1(person1) => println!("Hello {}", person1.name),
+        }
+    }
+}
+
+fn main() {
+    //println!("Hello, world!");
+    let ray = Ray{
+        name: String::from("Ray"),
+        age: 12,
+    };
+
+    let person1 = Person::P1(ray);
+    person1.call();
+}
+```
+## ```Option``` enum
+- Rust does not have ```null```, but it is still a useful feature. It is not necessary that there is something wrong with the feature it is rather implementation. That why rust implements ```Otion<T>``` which let user describe whether a variable may have data or not. And Rust forces the user to handle the ```None``` and ```Some``` cases.
+- The ```Option``` enum looks something like this:
+```rs
+enum Option<T>{
+    None,
+    Some(T),
+}
+```
+- The ```<T>``` is generic type in rust. Meaning the enum ```Option``` can take any data type and work on any data type.
+- No operation can be done on ```Option``` types regardless whether they are ```Some(value)``` or ```None```. Rust makes sure you handle the case of ```Option``` and turn ```Some(T)``` to ```T``` before you perform any operations on them.
+```rs
+fn main(){
+    let some_number = Some(5);
+    let some_number2 = Some(5);
+
+    println!("The SUM {:?}", some_number + some_number2);
+}
+```
+```shell
+error[E0369]: cannot add `Option<{integer}>` to `Option<{integer}>`
+--> src/main.rs:5:42
+|
+5 |     println!("The SUM {:?}", some_number + some_number2);
+|                              ----------- ^ ------------ Option<{integer}>
+|                              |
+|                              Option<{integer}>
+|
+note: `Option<{integer}>` does not implement `Add<Option<{integer}>>`
+--> /rustc/4a4ef493e3a1488c6e321570238084b38948f6db/library/core/src/option.rs:600:0
+|
+= note: `Option<{integer}>` is defined in another crate
+
+For more information about this error, try `rustc --explain E0369`.
+error: could not compile `enumLearning` (bin "enumLearning") due to 1 previous error
+```
+- Due to forcing user to handle the case beforehand, it eliminates the possibility of assuming something is not-null when it actually is null.
+
+# The ```match``` control flow
+- Difference between if statements and match statement is that, with if statement it has to be provided with a boolean value whereas with match it can be of any type.
