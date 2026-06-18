@@ -1460,3 +1460,267 @@ error: could not compile `enumLearning` (bin "enumLearning") due to 1 previous e
 
 # The ```match``` control flow
 - Difference between if statements and match statement is that, with if statement it has to be provided with a boolean value whereas with match it can be of any type.
+- The power of ```match``` comes from the expressiveness of the patterns and the fact that the compiler confirms that all possible cases are handled.
+- Unline ```if``` statements where the condition has to be a Boolean value, with ```match```, the condition could be of any type. Even enums!
+- In ```match``` each expression is considered an arm and an arm has two parts: a pattern and some code.
+```rs
+enum Coin{
+    Penny,
+    Nickel,
+    Dime,
+    Quarter,
+}
+
+fn value_in_cents(coin: Coin){
+    match coin{
+        Coin::Penny => 1, //ARM: Coin::Penny(Pettern) & 1, is Code
+        Coin::Nickel => 5,
+        Coin::Dime => 10,
+        Coin::Qaurter => 25,
+    }
+}
+```
+- If the match arm code is short we do not have to use curly brackets. But if the match arm code is long, we do have to. When using curly brackets we do not have to use commas.
+```rs
+enum Coin{
+    Penny,
+    Nickel,
+    Dime,
+    Quarter,
+}
+
+impl Coin{
+    fn value_in_cents(&self){
+        match self{
+            Coin::Penny => {
+                println!("The value is 1 cent!");
+            }
+            Coin::Nickel => {
+                println!("The value is 5 cent!");
+            }
+            Coin::Dime => {
+                println!("The value is 10 cent!");
+            }
+            Coin::Quarter => {
+                println!("The value is 25 cent!");
+            }
+        }
+    }
+}
+
+fn main(){
+    let coin = Coin::Dime;
+
+    coin.value_in_cents();
+}
+```
+- Another useful feature of match arms is that they can bind to the parts of the values that match the pattern. This can be used to extract values out of enum variants.
+- **Important fact** This is will be used in the next code snippet. From 1999 thru 2008 the USA minted its quarters with different design for each of the 50 states on one side. No other coin get state designs only Quarters. So in our enum, we can specify where the Quarter is from by using another enum State associated with the Quarter.
+```rs
+#[derive(Debug)]
+enum State{
+    Michigan,
+    Alabama,
+    Wisconsin,
+    Tenesse,
+    Texas,
+    Illinois,
+}
+
+enum Coin{
+    Penny,
+    Nickel,
+    Dime,
+    Quarter1(State),
+    //Quarter2(State),
+}
+
+fn value_in_cents(coin: Coin) -> u8{
+    match coin{
+        Coin::Penny => 1,
+        Coin::Nickel => 5,
+        Coin::Dime => 10,
+        Coin::Quarter1(state) => {
+            println!("The state the coin is from {state:?}");
+            25
+        }
+    }
+}
+
+fn main(){
+    value_in_cents(Coin::Quarter1(State::Michigan));
+}
+```
+- Within the ```Option<T>```, we can use ```match``` to get the inner T out of Option.
+- If we want to write a function that Option instance and want to add the number to 1 if something exist within it, it can be done this way:
+```rs
+fn additionOption(x: Option<i32>) -> Option<i32> {
+    match x{
+        None => None,
+        Some(i) => Some(i+1),
+    }
+}
+
+fn main(){
+    let five = Some(5);
+    ket six = additionOption(five);
+    let none = additionOption(None);
+}
+```
+- ```match``` is rust is exhaustive. Meaning it requires the programmer to handle every possible situation that may arise with a condition, you would have to handle every possible patterns that user may come across.
+- You can also use things like ```other``` keyword inside of ```match``` statement to explicitly write actions for some patterns and imply some actions for all other possibilities.
+```rs
+let dice_roll = 9;
+
+match dice_roll{
+    3 => println!("Wore a hat!!"),
+    7 => println!("Remove the hat!"),
+    other => println!("Move"),
+}
+```
+- In the ```match``` statement above, we explicitly mentioned some action when dice rolls to 3 and 7 but for all other number of dice rolls the players would just move to that number. In this case, since dice roll is 9, the player would just move. 
+- The key difference between ```other``` and wildcard ```_``` is that with wildcard any remaining patterns will be discarded but with ```other``` it is stored in a variable.
+
+# Concise control flow with ```if let``` and ```let else```
+- Consider a program, where we only do something if one pattern matches and do nothing if otherwise. This can be achieved using ```match```:
+```rs
+let config_max = Some(u8);
+
+match config_max{
+    Some(max) => println!("Max: {max}"),
+    _ => (),
+}
+```
+- Here We just had to do something if ```Some``` had a value. But for everything else we do nothing. But because of ```match```s exhaustiveness we had to also deal with all other edge cases.
+- This creates just extra boiler codes. Especially in a large project with multiple possibilities this can be tedious.
+- Now this whole code can be rewritten using ```if let``` statements:
+```rs
+let config_max = Some(u8);
+
+if let Some(max) = config_max{
+    pritnln!("Max: {max}");
+}
+```
+- General Syntax:
+```rs
+if let Pattern = expression{
+    // runs if pattern matches
+} else{
+    //runs if pattern do not match 
+}
+
+match expression{
+    pattern => //do something
+    pattern2 => //do something
+}
+```
+- ```if let``` works just like ```match``` expression. It is just comparing the pattern to the expression and if it does pass it executes the code inside the block.
+- For example this code can be written.
+```rs
+fn additionOption(x: Option<i32>) -> Option<i32> {
+    match x{
+        None => None,
+        Some(i) => Some(i+1),
+    }
+}
+
+fn main(){
+    let five = Some(5);
+    ket six = additionOption(five);
+    let none = additionOption(None);
+}
+```
+as this:
+```rs
+fn additionOption(x: Option<i32>) -> Option<i32> {
+    if let Some(i) = x{
+        Some(i+1)
+    } else{
+        None
+    }
+}
+
+fn main(){
+    let five = Some(5);
+    let six = additionOption(five);
+    let none = additionOption(None);
+}
+```
+- Continuing with the ```UsState``` enum. If we wanted to say something funny depending on the age of the state like so:
+```rs
+impl UsState{
+    fn existed_in(&self, year: u16)-> bool{
+        match self{
+            UsState::Alabama => year >= 1819,
+            UsState::Alaska => year >= 1959,
+        }
+    }
+
+    fn describe_state_quarter(coin: Coin) -> Option<String>{
+        if let Coin::Quarter(state) = coin{
+            if let existed_in(1990){
+                Some(format!("{state:?} is pretty old, for America!"))
+            } else{
+                Some(format!("{state:?} is relatively new."))
+            }
+        } else{
+            None
+        }
+    }
+}
+```
+- This gets the job done, but it has pushed the work to the body of ```if let``` statement. This makes the work to be done more complicated. Well in this case we can separate them by using the idea that we can use ```if let``` to return a value to a variable like this:
+```rs
+fn describe_state_quarter(coin: Coin) -> Option<String>{
+    let state = if let Coin::Quarter(state) = coin{
+        state
+    }else{
+        None;
+    };
+
+    if state.existed_in(1990){
+        Some(format!("{state:?} is pretty old for America!!"))
+    } else{
+        Some(format!("{state:?} is relatively new."))
+    }
+}
+```
+- Well now you are using two conditionals. One for returning a value to state and another to execute existed_in fn.
+- With the above code of returning a value to the variable ```state```, you are still having to check two cases. Since in every other cases the conmditional returns a value, we can shorten it using ```let else``` statement.
+```rs
+fn describe_state_quarter(coin: Coin)->Option<String>{
+    let Coin::Quarter(state) = coin else{
+        return None;
+    };
+    
+    if state.existed_in(1990){
+        Some(format!("{state:?} is pretty old for America!!"))
+    } else{
+        Some(format!("{state:?} is relatively new."))
+    }
+}
+```
+- Now instead of doing ```let state```, since with ```Coin::Quarte(state)``` we are binding some value to the var state, we can just use ```let``` to start the variable at ```if let``` portion so we do not have to use ```if let``` again.
+
+
+# Packages, Crates, and Modules
+- Rust has number of features that allows you to manage your code's organization, inlcuding which details are exposed, which details are private, and what names are in each scope in your program.
+    * *Packages*: A Cargo feature that lets you build, test, and share crares.
+    * *Crates*: A tree of modules that produces a library or executable.
+    * *Modules and use*: Let you control the organization, scope, and privacy of paths.
+    * *Paths*: A way of naming an item, such as a struct, function or module.
+-
+```txt
+            Crate
+               |
+            Module
+               |
+            Module(Nested)
+                |
+    _________________________
+    functions structs enums
+
+```
+- Crates are of two kinds: Binary Crates (main.rs) and Library Crates: (lib.rs). Binary crates compiles to an executable. Library crates are crates that are meant to be used by other crates. No ```main``` exist in library crates.
+- A package is a bundle of one or more crates that provides a set of functionality. A package contains a ```Cargo.toml``` file that describes how to build those crates. Cargo itself is actually a package that contains crate for the command line tool you have been using to build your code. The Cargo package also has library crates that its binary crate depends on.
+- A package can contain as many binary crates as it wants, but must contain only one library crate.    
