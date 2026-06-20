@@ -1723,4 +1723,94 @@ fn describe_state_quarter(coin: Coin)->Option<String>{
 ```
 - Crates are of two kinds: Binary Crates (main.rs) and Library Crates: (lib.rs). Binary crates compiles to an executable. Library crates are crates that are meant to be used by other crates. No ```main``` exist in library crates.
 - A package is a bundle of one or more crates that provides a set of functionality. A package contains a ```Cargo.toml``` file that describes how to build those crates. Cargo itself is actually a package that contains crate for the command line tool you have been using to build your code. The Cargo package also has library crates that its binary crate depends on.
-- A package can contain as many binary crates as it wants, but must contain only one library crate.    
+- A package can contain as many binary crates as it wants, but must contain only one library crate. Also a package must contain at least one crate, whether it is binary crate or lib crate.
+- When we use ```cargo new projectName```, we are essentially creating a package. This can be determined once we ```ls``` into the ```projectName``` and see a ```Cargo.toml``` file there.
+- Looking inside of ```Cargo.toml``` you would see no mention of src/main.rs. Cargo follows a convention that src/main.rs is the crate root of a binary crate with the same name as the package. Likewise Cargo knows if a package contains a library crate if there exist a src/lib.rs library crate inside of src. Cargo passes these crate root such as main.rs and lib.rs to rustc to build the library or binary.
+```sh
+󰛓 ❯ cargo new my-project
+Creating binary (application) `my-project` package
+note: see more `Cargo.toml` keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+playaow@rayhanul3-karim-edu in repo: Note on  main +/- [?]
+󰛓 ❯ bat my-project/Cargo.toml
+─────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+│ File: my-project/Cargo.toml
+─────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+1 │ [package]
+2 │ name = "my-project"
+3 │ version = "0.1.0"
+4 │ edition = "2024"
+5 │
+6 │ [dependencies]
+─────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+```
+- When creating this dir using ```Cargo```, it creates a project with one binary crate name my-project. This does not mean it creates a my-project.rs necessarily. Just in general in the prod environment, if someone were to use your package, they would use the name of your crates to access the structs and functions. But this is more needed especially when lib.rs is involved.
+- A package can have multiple binary crates by placing files in the src/bin dir. Each file will be a separate binary crate.
+## Control Scope and Privacy with Modules
+- How modules, paths, the ```use``` keyword, and the ```pub``` keyword works in the compiler:
+    * **Start from the crate root**: When compiling a crate, the compiler first looks into the crate root file (typically src/lib.rs for lib crate and src/main.rs for binary crate) for code to compile.
+    * **Declaring Modules**: IN the crate root file (typicallt src/), you can declare new modules. Unlike languages like Python and Java, in rust module declaration is explicit. You would have to use the keyword ```mod``` in order to make a file module. Such as you can declare a "garder" module by keyword ```mod garden;```. The compiler will look for the module's code in these places:
+        * Inline, within curly brackets that replaces the semicolon following ```mod garden```.
+        * In the src/garden.rs
+        * IN the file src/garden/garden.rs or mod.rs
+    * **Paths to code in Modules**: Once a module is part of your crate, you can refer to code in that module from anywhere else in the same crate, as long as the privacy rules allow, using the path to your code. For example an ```Asparagus``` found in src/garden/mod.rs, vegetable.rs module would be found at ```crate::garden::vegetable::Asparagus```.
+    * **Private vs Public**: Code within a module is private from its parent module by default. To make a module public,declare it using ```pub mod``` and to make items within the module public declare the item using ```pub``` keyword.
+    * **The ```use``` keyword**: Within a scope, the ```use``` keyword creates a shortcuts to items to reduce repetition of long paths. In any scope that can refer to ```crate::garden::vegetable::Asparagus```, you can create a shortcut with ```use crate::garden::vegetable::Asparagus```, and from then on you only need to write Asparagus to make sue of that type in the scope.backyard
+- One thing I did realize with my ```Habit-Tracker``` project is that, in that project I just had multiple file separated for multiple purposes. I did not really add the ```mod``` keyword in those files. Such as in my ```models.rs``` which contain all the structs and enums necessary for my program, I did not really wrap all the strcuts and enums in models.rs inside a mod wrapper. Rather I just declared them inside of models.rs and later just imported models.rs using ```mod``` keyword in other files such as main.rs as mod models; and it worked fine. Later I used ```use``` in main.rs and other file to shorten my code ig. And I think if you have one file where you would have all the data and functionality in that case I guess using mod wrapper makes sense. But if you have different file for different tasks like the project Habit-Tracker, It is hard for me to see any use for mod wrapper in that case. I might be wrong, will find out.
+```rs
+mod models;
+mod habit;
+mod storage;
+use models::*;
+use crate::models::*;
+use storage::*;
+
+//Need a lot more work on main.
+// Especially for taking user input and linking them to the right data.
+// main.rs is primarily being used for testing purposes now.
+fn main() {
+    let habit1: Habit = models::Habit::create_habit(String::from("Learning Rust"), String::from("Eventually build CLI tools"), Category::Learning, Status::Pending, Occurence::Daily);
+    let habit = models::Habit::create_habit(String::from("Learning Math"), String::from("To get to Calc 3"), Category::Learning, Status::Pending, Occurence::Daily);
+    let mut habitList: Vec<Habit> = Vec::new();
+    habitList.push(habit);
+    habitList.push(habit1);
+    let ray = models::User::create_user(String::from("Ray"), String::from("Ray880"), 29, String::from("Hush"), habitList);
+    ray.display();
+    Habit::list_habits(&ray);
+    AppData::update_json("./habit_data/data.json", &ray).expect("Failed to update JSON");
+    AppData::find_usr("./habit_data/data.json", "Ray880");
+}
+```
+```rs
+use crate::garden::vegetables::Asparagus;
+
+pub mod garden;
+
+fn main(){
+    let plant = Asparagus {};
+    println!("I'm growing {plant:?}");
+}
+```
+- The ```pub mod grden``` tells the compiler to include the code it finds in src/garden.rs. and ```garden.rs``` includes ```pub mod vegetables```. Here ```pub mod vegetables``` means the code in src/garden/vegetable.rs is included too.
+- Modules allow us to organize our code and also implement privacy since modules codes are private by default.
+- **NOTE**: Signatures of functions are: ```pub fn_name(args) -> ReturnTypeIfAny {}```
+- First we need to create a new library using ```cargo new dirName --lib```
+- Here in the code snippet below, we create a lib crate for defining functionality of a restaurant. In the library we just declare the function signature and leave the bodies empty to focus on organization of the code rather:
+```rs
+mod front_of_house {
+    mod hosting {
+        fn add_to_waitlist() {}
+        fn seat_at_table() {}
+    }
+
+    mod serving {
+        fn take_order() {}
+
+        fn serve_order() {}
+
+        fn take_payment() {}
+    }
+}
+```
+- Although a module may look similar to structs, enums, or traits. They are not. Think of them as containers that can contains anything. A module can contains another module, it can contains structs, traits, enums, functions etc.
+- In the above example, module serving and hosting are child module of front_of_house.And since hosting and serving are child of the same parent module front_of_house, serving and hosting are also considered siblings of each other. 
