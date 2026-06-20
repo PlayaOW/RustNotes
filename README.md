@@ -1731,7 +1731,7 @@ fn describe_state_quarter(coin: Coin)->Option<String>{
 Creating binary (application) `my-project` package
 note: see more `Cargo.toml` keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-playaow@rayhanul3-karim-edu in repo: Note on  main +/- [?]
+playaow@LOL in repo: Note on  main +/- [?]
 󰛓 ❯ bat my-project/Cargo.toml
 ─────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 │ File: my-project/Cargo.toml
